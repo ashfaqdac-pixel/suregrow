@@ -1,131 +1,128 @@
+-- ========================
+-- SureGrow Database Schema
+-- ========================
 
--- Users & Roles
-CREATE TABLE IF NOT EXISTS users (
-  id TEXT PRIMARY KEY,
-  email TEXT UNIQUE NOT NULL,
-  name TEXT,
-  role TEXT NOT NULL DEFAULT 'viewer',
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Core
-CREATE TABLE IF NOT EXISTS batches (
-  id TEXT PRIMARY KEY,
-  code TEXT NOT NULL,
-  name TEXT NOT NULL,
-  start_date TEXT,
-  closure_date TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS investors (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  phone TEXT,
-  email TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS commitments (
-  id TEXT PRIMARY KEY,
-  investor_id TEXT NOT NULL,
-  batch_id TEXT NOT NULL,
-  amount REAL NOT NULL,
-  start_date TEXT,
-  end_date TEXT,
-  frequency TEXT,
-  tier TEXT,
-  roi_min_pct REAL,
-  roi_max_pct REAL,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS transactions (
-  id TEXT PRIMARY KEY,
-  date TEXT,
-  direction TEXT,
-  wallet TEXT,
-  category TEXT,
-  amount REAL,
-  batch_id TEXT,
-  cow_id TEXT,
-  notes TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-CREATE TABLE IF NOT EXISTS distributions (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT,
-  date TEXT,
-  kind TEXT,
-  investor_id TEXT,
-  amount REAL,
-  notes TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
-);
-
--- Wallets & Categories
+-- Wallets
 CREATE TABLE IF NOT EXISTS wallets (
-  id TEXT PRIMARY KEY,
-  name TEXT NOT NULL,
-  opening_balance REAL DEFAULT 0,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    balance REAL DEFAULT 0,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX IF NOT EXISTS wallets_name_unique ON wallets(name);
 
-CREATE TABLE IF NOT EXISTS categories (
-  id TEXT PRIMARY KEY,
-  kind TEXT NOT NULL,
-  name TEXT NOT NULL,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    email TEXT NOT NULL UNIQUE,
+    role TEXT DEFAULT 'member',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX IF NOT EXISTS categories_kind_name_unique ON categories(kind, name);
+
+-- Batches (e.g., Eid 2026)
+CREATE TABLE IF NOT EXISTS batches (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Investors
+CREATE TABLE IF NOT EXISTS investors (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    contact TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Commitments (investor investments)
+CREATE TABLE IF NOT EXISTS commitments (
+    id TEXT PRIMARY KEY,
+    investor_id TEXT NOT NULL,
+    batch_id TEXT,
+    amount REAL NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
 -- Cows
 CREATE TABLE IF NOT EXISTS cows (
-  id TEXT PRIMARY KEY,
-  batch_id TEXT NOT NULL,
-  tag TEXT NOT NULL,
-  purchase_date TEXT,
-  purchase_weight_kg REAL,
-  purchase_height_cm REAL,
-  purchase_price REAL,
-  source TEXT,
-  status TEXT DEFAULT 'in_farm',
-  photo_url TEXT,
-  notes TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL,
+    tag TEXT,
+    purchase_price REAL,
+    purchase_date TEXT,
+    height REAL,
+    weight REAL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
-CREATE UNIQUE INDEX IF NOT EXISTS cows_batch_tag_unique ON cows(batch_id, tag);
 
+-- Cow Measurements
 CREATE TABLE IF NOT EXISTS measurements (
-  id TEXT PRIMARY KEY,
-  cow_id TEXT NOT NULL,
-  date TEXT NOT NULL,
-  weight_kg REAL,
-  height_cm REAL,
-  health_score INTEGER,
-  notes TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    cow_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    height REAL,
+    weight REAL,
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Cow Events (sickness, vaccine, etc.)
 CREATE TABLE IF NOT EXISTS cow_events (
-  id TEXT PRIMARY KEY,
-  cow_id TEXT NOT NULL,
-  date TEXT NOT NULL,
-  type TEXT NOT NULL,
-  details TEXT,
-  amount REAL,
-  receipt_url TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    cow_id TEXT NOT NULL,
+    date TEXT NOT NULL,
+    type TEXT,          -- e.g., sickness, vaccine, medicine
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Expense / Income Categories
+CREATE TABLE IF NOT EXISTS categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,   -- 'expense' or 'income'
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
--- Optional receipts for transactions
-ALTER TABLE transactions ADD COLUMN IF NOT EXISTS receipt_url TEXT;
+-- Transactions
+CREATE TABLE IF NOT EXISTS transactions (
+    id TEXT PRIMARY KEY,
+    date TEXT NOT NULL,
+    amount REAL NOT NULL,
+    direction TEXT NOT NULL,  -- 'in' or 'out'
+    wallet_id TEXT NOT NULL,
+    category_id TEXT NOT NULL,
+    batch_id TEXT,
+    cow_id TEXT,
+    notes TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 
--- Generic files (for R2 uploads)
+-- Distributions (profit payouts)
+CREATE TABLE IF NOT EXISTS distributions (
+    id TEXT PRIMARY KEY,
+    investor_id TEXT NOT NULL,
+    batch_id TEXT NOT NULL,
+    amount REAL NOT NULL,
+    date TEXT NOT NULL,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Files (receipts, cow photos, etc.)
 CREATE TABLE IF NOT EXISTS files (
-  id TEXT PRIMARY KEY,
-  kind TEXT,           -- 'tx_receipt' | 'cow_photo' | 'event_receipt' | 'other'
-  ref_id TEXT,         -- linked record id
-  key TEXT,            -- R2 object key
-  url TEXT,            -- public URL
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    id TEXT PRIMARY KEY,
+    kind TEXT,           -- 'tx_receipt' | 'cow_photo' | 'event_receipt' | 'other'
+    ref_id TEXT,         -- linked record id
+    key TEXT,            -- R2 object key
+    url TEXT,            -- Public URL
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ===============
+-- Schema Upgrades
+-- ===============
+-- Add receipt_url column to transactions (only run once if not already present)
+ALTER TABLE transactions ADD COLUMN receipt_url TEXT;
