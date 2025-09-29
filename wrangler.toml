@@ -1,0 +1,32 @@
+name = "suregrow-api"
+main = "src/index.ts"
+compatibility_date = "2024-05-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "suregrow"
+database_id = "REPLACE_ME"
+
+[vars]
+FOUNDERS_SHARE = "60"
+INVESTORS_SHARE = "40"
+TIERA_MIN = "1.33"
+TIERA_MAX = "1.66"
+TIERB_MIN = "1.50"
+TIERB_MAX = "1.90"
+TIERC_MIN = "1.80"
+TIERC_MAX = "2.10"
+TIERD_MIN = "2.00"
+TIERD_MAX = "2.33"
+
+ACCESS_REQUIRED = "true"
+ACCESS_DEV_EMAIL = ""
+
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "suregrow"   # create this in Cloudflare R2 (free)
+preview_bucket_name = "suregrow"
+
+[vars]
+R2_PUBLIC_BASE = ""  # optional: e.g., https://pub-xxxxxxxxxx.r2.dev
